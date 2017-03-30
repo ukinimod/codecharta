@@ -1,0 +1,14 @@
+<div id="treeView">
+
+    <div ivh-treeview="ctrl.tree"
+         ivh-treeview-label-attribute="'name'"
+         ivh-treeview-children-attribute="'children'"
+         ivh-treeview-selected-attribute="'isSelectedInTree'"
+         ivh-treeview-use-checkboxes="true",
+         ivh-treeview-on-cb-change="ctrl.onTreeCheckboxChanged(ivhNode, ivhIsSelected, ivhTree)",
+         ivh-treeview-on-toggle="ctrl.onTreeToggle(ivhNode, ivhIsExpanded, ivhTree)"
+    >
+
+    </div>
+
+</div>

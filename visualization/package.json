@@ -30,6 +30,7 @@
   "dependencies": {
     "ajv": "^4.11.2",
     "angular": "^1.6.0",
+    "angular-ivh-treeview": "^1.0.6",
     "angular-mocks": "^1.6.0",
     "babel-cli": "^6.18.0",
     "babel-core": "^6.24.0",

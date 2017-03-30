@@ -1,0 +1,20 @@
+ul.ivh-treeview {
+    list-style-type: none;
+    padding-left: 0;
+}
+ul.ivh-treeview ul.ivh-treeview {
+    padding-left: 15px;
+}
+ul.ivh-treeview .ivh-treeview-toggle {
+    cursor: pointer;
+}
+ul.ivh-treeview .ivh-treeview-node-leaf .ivh-treeview-toggle {
+    cursor: auto;
+}
+
+/* Workaround to use checkboxes without labels in materialize css, https://github.com/Dogfalo/materialize/issues/1376 */
+.ivh-treeview [type="checkbox"]:not(:checked), .ivh-treeview [type="checkbox"]:checked {
+    position: static;
+    left: 0;
+    opacity: 1;
+}
