@@ -1,30 +1,18 @@
 <div id="treeView">
 
     <div ivh-treeview="ctrl.tree"
-         ivh-treeview-label-attribute="'name'"
-         ivh-treeview-children-attribute="'children'"
-         ivh-treeview-selected-attribute="'isSelectedInTree'"
-         ivh-treeview-use-checkboxes="true"
-         ivh-treeview-on-cb-change="ctrl.onTreeCheckboxChanged(ivhNode, ivhIsSelected, ivhTree)"
-         ivh-treeview-on-toggle="ctrl.onTreeToggle(ivhNode, ivhIsExpanded, ivhTree)"
          ivh-treeview-options="ctrl.treeOptions"
-         ivh-treeview-default-selected-state="true"
     >
 
         <script type="text/ng-template">
-
-            <div title="{{trvw.label(node)}}">
-
-                <!--Twisty with toggle-->
-                <span ivh-treeview-toggle><span ivh-treeview-twistie></span></span>
-
-                <tree-view-node node="node"></tree-view-node>
-
-                <!-- Children -->
-                <div ivh-treeview-children></div>
-
-            </div>
-
+            <span ivh-treeview-toggle>
+                <span ivh-treeview-twistie></span>
+            </span>
+            <tree-view-checkbox-directive></tree-view-checkbox-directive>
+            <span class="ivh-treeview-node-label" ivh-treeview-toggle>
+                {{trvw.label(node)}}
+            </span>
+            <div ivh-treeview-children></div>
         </script>
 
     </div>

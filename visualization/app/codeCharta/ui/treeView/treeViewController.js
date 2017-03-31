@@ -10,10 +10,9 @@ class TreeViewController {
      * @constructor
      * @param {Scope} $scope
      * @param {DataService} dataService
-     * @param {CodeMapService} codeMapService
      * @listens {data-changed}
      */
-    constructor($scope, dataService, codeMapService) {
+    constructor($scope, dataService) {
 
         this.tree = dataService.data.currentmap;
 
@@ -21,23 +20,18 @@ class TreeViewController {
         $scope.$on("data-changed", (e,d)=>{ctx.onDataChanged(d);});
 
         this.treeOptions = {
+            labelAttribute: "name",
+            childrenAttribute: "children",
+            useCheckboxes: true,
+            defaultSelectedState: true,
+            expandToDepth: -1,
+            validate: true,
             twistieCollapsedTpl: "<i class='fa fa-folder fa-lg'></i>",
             twistieExpandedTpl: "<i class='fa fa-folder-open fa-lg'></i>",
-            twistieLeafTpl: "<i class='fa fa-file fa-lg'></i>",
-            nodeTpl: "<tree-view-node-directive></tree-view-node-directive>"
+            twistieLeafTpl: "<i class='fa fa-file fa-lg'></i>"
         };
 
-
     }
-
-    onTreeToggle(ivhNode, ivhIsExpanded, ivhTree) {
-        console.log("toggle", ivhNode);
-    }
-
-    onTreeCheckboxChanged(ivhNode, ivhIsExpanded, ivhTree) {
-        console.log("select/deselect", ivhNode);
-    }
-
 
 }
 
