@@ -19,6 +19,9 @@ class TreeViewCheckboxDirective {
             "<span ng-show='node.__ivhTreeviewIndeterminate'>~</span>",
             "<span ng-hide='node.selected || node.__ivhTreeviewIndeterminate'> </span>",
             "]</span>",
+            "<span class='ivh-treeview-node-label' ivh-treeview-toggle>",
+            "{{trvw.label(node)}}",
+            "</span>"
         ].join("");
 
     }
