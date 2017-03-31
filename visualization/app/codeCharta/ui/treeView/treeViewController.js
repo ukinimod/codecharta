@@ -20,20 +20,22 @@ class TreeViewController {
         let ctx = this;
         $scope.$on("data-changed", (e,d)=>{ctx.onDataChanged(d);});
 
+        this.treeOptions = {
+            twistieCollapsedTpl: "<i class='fa fa-folder fa-lg'></i>",
+            twistieExpandedTpl: "<i class='fa fa-folder-open fa-lg'></i>",
+            twistieLeafTpl: "<i class='fa fa-file fa-lg'></i>",
+            nodeTpl: "<tree-view-node-directive></tree-view-node-directive>"
+        };
 
-    }
 
-    onDataChanged(dataModel) {
-        this.tree = dataModel.currentmap;
-        console.log(this.tree);
     }
 
     onTreeToggle(ivhNode, ivhIsExpanded, ivhTree) {
-        console.log("toggle");
+        console.log("toggle", ivhNode);
     }
 
     onTreeCheckboxChanged(ivhNode, ivhIsExpanded, ivhTree) {
-        console.log("select/deselect");
+        console.log("select/deselect", ivhNode);
     }
 
 

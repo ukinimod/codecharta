@@ -1,0 +1,9 @@
+<!--Twisty with toggle-->
+<input id="node-{{$id}}" type="checkbox" class="ivh-treeview-checkbox"
+       ng-model="isSelected"
+       ng-click="resolveIndeterminateClick()"
+       ng-change="trvw.select(node, isSelected)"
+>
+
+<!-- Label -->
+<label class="ivh-treeview-node-label" for='node-{{$id}}'>{{node}}</label>
