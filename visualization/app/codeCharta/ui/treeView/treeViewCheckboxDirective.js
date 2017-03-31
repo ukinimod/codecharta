@@ -9,6 +9,8 @@ class TreeViewCheckboxDirective {
 
         this.mgr = ivhTreeviewMgr;
 
+        this.require="^ivhTreeview";
+
         this.restrict = "AE";
 
         this.template = [
@@ -24,9 +26,7 @@ class TreeViewCheckboxDirective {
     link(scope, element, attrs) {
         let ivhTreeviewMgr = this.mgr;
         element.on("click", function() {
-            console.log(scope); //TODO tree ist undefined
-            ivhTreeviewMgr.select(scope.tree, scope.node, !scope.node.selected);
-            scope.$apply();
+            ivhTreeviewMgr.select(scope.trvw.root(), scope.node, !scope.node.selected);
         });
     }
     
