@@ -31,7 +31,7 @@ class TreeViewDirective {
 
         /**
          *
-         * @type {SettingsPanelController}
+         * @type {TreeViewController}
          */
         this.controller = TreeViewController;
 

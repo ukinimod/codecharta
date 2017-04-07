@@ -5,9 +5,10 @@ class TreeViewCheckboxDirective {
     /**
      * @constructor
      */
-    constructor(ivhTreeviewMgr) {
+    constructor(ivhTreeviewMgr, settingsService) {
 
         this.mgr = ivhTreeviewMgr;
+        this.settingsService = settingsService;
 
         this.require="^ivhTreeview";
 
@@ -28,8 +29,13 @@ class TreeViewCheckboxDirective {
 
     link(scope, element, attrs) {
         let ivhTreeviewMgr = this.mgr;
+        let ctx = this;
         element.on("click", function() {
-            scope.$apply(ivhTreeviewMgr.select(scope.trvw.root(), scope.node, !scope.node.selected));
+            scope.$apply(()=>{
+                ivhTreeviewMgr.select(scope.trvw.root(), scope.node, !scope.node.selected);
+                ctx.settingsService.onSettingsChanged();
+                //the treemapService transforms the node and maps the values to node.selectedInTreeview and sets undefined to true since the default value is true
+            });
         });
     }
     

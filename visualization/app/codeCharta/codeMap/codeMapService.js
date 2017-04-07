@@ -248,9 +248,15 @@ class CodeMapService {
     addNode(node, heightKey){
         //we need to keep in mind that d3 originally is in 2D, so we need to relabel the axis to match Three.js 3D space
         if(!node.isLeaf){
-            this.addFloor(node.width, node.height, node.length, node.x0, node.z0, node.y0, node.depth, node);
+            //package nodes should only be rendered if they are really selected or indeterminate(children are partially selected) in e.g. treeview
+            if (node.data.selected || node.data.__ivhTreeviewIndeterminate) {
+                this.addFloor(node.width, node.height, node.length, node.x0, node.z0, node.y0, node.depth, node);
+            }
         } else {
-            this.addBuilding(node.width, node.height, node.length, node.x0, node.z0, node.y0, node.deltas && this.settingsService.settings.deltas ? node.deltas[heightKey] : 0, node);
+            //leaf nodes should only be rendered if they are really selected in e.g. treeview
+            if (node.data.selected) {
+                this.addBuilding(node.width, node.height, node.length, node.x0, node.z0, node.y0, node.deltas && this.settingsService.settings.deltas ? node.deltas[heightKey] : 0, node);
+            }
         }
     }
 

@@ -12,24 +12,27 @@ class TreeViewController {
      * @param {DataService} dataService
      * @listens {data-changed}
      */
-    constructor($scope, dataService) {
+    constructor($scope, settingsService, ivhTreeviewMgr) {
 
-        this.tree = dataService.data.currentmap;
+        this.tree = settingsService.settings.map;
 
         let ctx = this;
-        $scope.$on("data-changed", (e,d)=>{ctx.onDataChanged(d);});
+        $scope.$on("settings-changed", (e,s)=>{this.tree = s.map;});
 
         this.treeOptions = {
             labelAttribute: "name",
             childrenAttribute: "children",
             useCheckboxes: true,
-            defaultSelectedState: true,
-            expandToDepth: -1,
-            validate: true,
+            defaultSelectedState: false,
+            validate:true,
+            expandToDepth: 1,
             twistieCollapsedTpl: "<i class='fa fa-folder fa-lg'></i>",
             twistieExpandedTpl: "<i class='fa fa-folder-open fa-lg'></i>",
             twistieLeafTpl: "<i class='fa fa-file fa-lg'></i>"
         };
+
+        ivhTreeviewMgr.selectAll(this.tree);
+        settingsService.onSettingsChanged();
 
     }
 

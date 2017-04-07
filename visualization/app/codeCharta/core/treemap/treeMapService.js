@@ -81,9 +81,6 @@ class TreeMapService {
         }
         node.link = node.data.link;
 
-        node.data = {};
-        delete node.data;
-
     }
 
     /**

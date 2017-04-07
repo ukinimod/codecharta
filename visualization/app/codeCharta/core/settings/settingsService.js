@@ -92,7 +92,6 @@ class SettingsService {
      */
     onSettingsChanged() {
         this.rootScope.$broadcast("settings-changed", this.settings);
-
     }
 
     /**

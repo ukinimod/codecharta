@@ -3,12 +3,13 @@
 import {TreeViewDirective} from "./treeViewDirective.js";
 import {TreeViewCheckboxDirective} from "./treeViewCheckboxDirective.js";
 import {TreeViewController} from "./treeViewController.js";
+import "../../core/settings/settings.js";
 
 import "../common/checkbox/checkbox";
 
 angular.module(
     "app.codeCharta.ui.treeView",
-    ["ivh.treeview"]
+    ["ivh.treeview", "app.codeCharta.core.settings"]
 );
 
 angular.module("app.codeCharta.ui.treeView").controller(
@@ -23,6 +24,6 @@ angular.module("app.codeCharta.ui.treeView").directive(
 
 angular.module("app.codeCharta.ui.treeView").directive(
     "treeViewCheckboxDirective",
-    ["ivhTreeviewMgr", (a) => new TreeViewCheckboxDirective(a)]
+    ["ivhTreeviewMgr", "settingsService", (a,b) => new TreeViewCheckboxDirective(a,b)]
 );
 
