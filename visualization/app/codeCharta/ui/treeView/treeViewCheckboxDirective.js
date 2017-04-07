@@ -29,7 +29,7 @@ class TreeViewCheckboxDirective {
     link(scope, element, attrs) {
         let ivhTreeviewMgr = this.mgr;
         element.on("click", function() {
-            ivhTreeviewMgr.select(scope.trvw.root(), scope.node, !scope.node.selected);
+            scope.$apply(ivhTreeviewMgr.select(scope.trvw.root(), scope.node, !scope.node.selected));
         });
     }
     
