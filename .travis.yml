@@ -13,7 +13,7 @@ env:
 
 addons:
   sonarqube:
-    organization: "mrpatpat-corp"
+    organization: "mrppc"
     branches:
       - publicSQ
 
@@ -24,8 +24,6 @@ install:
   - rm -rf ~/.nvm && git clone https://github.com/creationix/nvm.git ~/.nvm && (cd ~/.nvm && git checkout `git describe --abbrev=0 --tags`) && source ~/.nvm/nvm.sh && nvm install $TRAVIS_NODE_VERSION
 
 script:
-  - ./visualization/script/travis-build.sh
-  - ./analysis/script/travis-build.sh
   - sonar-scanner
 
 before_cache:
