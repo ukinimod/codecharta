@@ -11,6 +11,10 @@ jdk:
 env:
   - TRAVIS_NODE_VERSION="6"
 
+addons:
+  sonarqube:
+    organization: "mrpatpat-corp"
+
 before_install:
  - chmod +x ./analysis/gradlew
 
@@ -20,6 +24,7 @@ install:
 script:
   - ./visualization/script/travis-build.sh
   - ./analysis/script/travis-build.sh
+  - sonar-scanner
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
