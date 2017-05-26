@@ -13,9 +13,10 @@ env:
 
 addons:
   sonarqube:
-    organization: "mrppc"
+    organization: "maibornwolff"
     branches:
       - publicSQ
+      - master
 
 before_install:
  - chmod +x ./analysis/gradlew
