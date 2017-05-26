@@ -14,6 +14,8 @@ env:
 addons:
   sonarqube:
     organization: "mrpatpat-corp"
+    branches:
+      - publicSQ
 
 before_install:
  - chmod +x ./analysis/gradlew
