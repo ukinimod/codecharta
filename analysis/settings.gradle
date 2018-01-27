@@ -1,5 +1,5 @@
 include 'model'
-include 'filter:MergeFilter'
+include 'filter:MergeFilter', 'filter:SummaryFilter'
 include 'import:SonarImporter', 'import:CSVImporter', 'import:SourceMonitorImporter', 'import:SCMLogParser'
 
 include 'tools:ValidationTool'

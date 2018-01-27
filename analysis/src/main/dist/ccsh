@@ -23,7 +23,8 @@ CC_CMD=(
     "sonarimport"
     "sourcemonitorimport"
     "scmlogparser"
-    "merge")
+    "merge"
+    "summary")
 CC_CMD_DESCRIPTION=(
     "installs submodules"
     "checks if json is valid"
@@ -31,7 +32,8 @@ CC_CMD_DESCRIPTION=(
     "imports data from sonar"
     "imports data from sourcemonitor"
     "imports data from scmlog"
-    "merges multiple json files")
+    "merges multiple json files"
+    "adds project summary to json file")
 CC_CMD_BIN=(
     "install"
     "${CC_INSTALL_DIR}/codecharta-check-${CC_VERSION}/bin/codecharta-check"
@@ -39,7 +41,8 @@ CC_CMD_BIN=(
     "${CC_INSTALL_DIR}/codecharta-sonarimport-${CC_VERSION}/bin/codecharta-sonarimport"
     "${CC_INSTALL_DIR}/codecharta-sourcemonitorimport-${CC_VERSION}/bin/codecharta-sourcemonitorimport"
     "${CC_INSTALL_DIR}/codecharta-scmlogparser-${CC_VERSION}/bin/codecharta-scmlogparser"
-    "${CC_INSTALL_DIR}/codecharta-merge-${CC_VERSION}/bin/codecharta-merge")
+    "${CC_INSTALL_DIR}/codecharta-merge-${CC_VERSION}/bin/codecharta-merge"
+    "${CC_INSTALL_DIR}/codecharta-summary-${CC_VERSION}/bin/codecharta-summary")
 
 exit_with_error() {
   echo Error: $1 1>&2
