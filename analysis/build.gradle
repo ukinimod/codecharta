@@ -1,14 +1,18 @@
-plugins {
-    id 'org.sonarqube' version '2.6.1'
-    id 'distribution'
-    id 'maven'
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+    dependencies {
+        classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: kotlin_version
+    }
 }
 
-group 'de.maibornwolff.codecharta'
-version = currentVersion
-
-repositories {
-    mavenCentral()
+plugins {
+    id 'org.sonarqube' version '2.6.2'
+    id 'distribution'
 }
 
 allprojects {
@@ -21,7 +25,31 @@ allprojects {
     apply plugin: 'maven'
 
     jacoco {
-        toolVersion = "0.7.8"
+        toolVersion = '0.8.0'
+    }
+}
+
+subprojects {
+    apply plugin: 'kotlin'
+
+    dependencies {
+        compileOnly group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlin_version
+        testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlin_version
+    }
+
+    compileJava {
+        options.compilerArgs += ['--release', '8']
+    }
+
+    compileTestJava {
+        options.compilerArgs += ['--release', '8']
+    }
+
+    compileKotlin {
+        kotlinOptions.jvmTarget = '1.8'
+    }
+    compileTestKotlin {
+        kotlinOptions.jvmTarget = '1.8'
     }
 }
 
@@ -50,12 +78,6 @@ distributions {
             // deprecated ccsh
             from {'dist/ccsh'}
         }
-    }
-}
-
-sonarqube {
-    properties {
-        property 'sonar.coverage.exclusions', '**/model/**, **/*Main*'
     }
 }
 

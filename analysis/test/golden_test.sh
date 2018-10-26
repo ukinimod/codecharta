@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-INSTALL_DIR="../build/tmp/golden test"
+INSTALL_DIR="../build/tmp/goldentest"
 
 exit_with_err(){
   echo $1 >&2
@@ -41,18 +41,32 @@ validate() {
   fi
 }
 
-check_sonar() {
-  echo " -- expect SonarImporter gives valid cc.json"
-  ACTUAL_SONAR_JSON="${INSTALL_DIR}/actual_sonarimport.json"
-  "${CCSH}" sonarimport -l --old-api -o "${ACTUAL_SONAR_JSON}" data/codecharta/sonar.xml
-  validate "${ACTUAL_SONAR_JSON}"
-}
-
 check_sourcemonitor() {
   echo " -- expect SourceMonitorImporter gives valid cc.json"
   ACTUAL_SOURCEMON_JSON="${INSTALL_DIR}/actual_sourcemonitorimporter.json"
   "${CCSH}" sourcemonitorimport data/codecharta/sourcemonitor.csv > "${ACTUAL_SOURCEMON_JSON}"
   validate "${ACTUAL_SOURCEMON_JSON}"
+}
+
+check_understand() {
+  echo " -- expect UnderstandImporter gives valid cc.json"
+  ACTUAL_UNDERSTAND_JSON="${INSTALL_DIR}/actual_understandimporter.json"
+  "${CCSH}" understandimport data/codecharta/understand.csv > "${ACTUAL_UNDERSTAND_JSON}"
+  validate "${ACTUAL_UNDERSTAND_JSON}"
+}
+
+check_crococosmo() {
+  echo " -- expect CrococosmoImporter gives valid cc.json"
+  ACTUAL_COSMO_JSON="${INSTALL_DIR}/actual_cosmoimport.json"
+  "${CCSH}" crococosmoimport data/codecharta/crococosmo.xml > "${ACTUAL_COSMO_JSON}"
+  validate "${ACTUAL_COSMO_JSON}"
+}
+
+check_jasome() {
+  echo " -- expect JasomeImporter gives valid cc.json"
+  ACTUAL_JASOME_JSON="${INSTALL_DIR}/actual_jasomeimport.json"
+  "${CCSH}" jasomeimport data/codecharta/jasome.xml > "${ACTUAL_JASOME_JSON}"
+  validate "${ACTUAL_JASOME_JSON}"
 }
 
 check_scmlog() {
@@ -74,8 +88,10 @@ run_tests() {
   echo "Running Tests..."
   echo
 
-  check_sonar
   check_sourcemonitor
+  check_crococosmo
+  check_understand
+  check_jasome
   check_scmlog
   check_merge
 

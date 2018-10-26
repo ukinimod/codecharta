@@ -1,5 +1,11 @@
 "use strict";
 import {ILocationService, IHttpService, IHttpResponse} from "angular";
+import {CodeMap} from "../data/model/CodeMap";
+
+export interface NameDataPair {
+    name: string;
+    data: Object;
+}
 
 /**
  * This service offers an application specific url API.
@@ -7,6 +13,8 @@ import {ILocationService, IHttpService, IHttpResponse} from "angular";
 export class UrlService {
 
     public static SELECTOR = "urlService";
+
+    private static OK_CODE = 200;
 
     /* @ngInject */
     constructor(private $location: ILocationService, private $http: IHttpService) {
@@ -52,15 +60,30 @@ export class UrlService {
     }
 
     /**
-     * returns the files content specified in the 'file' url parameter
+     * returns the files contents specified in the 'file' url parameter
      * @returns {Promise} which returns the files content on resolution
      */
-    public getFileDataFromQueryParam(): Promise<Object> {
+    public getFileDataFromQueryParam(): Promise<NameDataPair[]> {
 
-        return new Promise((resolve, reject) => {
-            var param = this.getParam("file");
-            this.getFileDataFromFile(param).then(resolve, reject);
+        let fileNames = this.$location.search().file;
+
+        if(!fileNames) {
+            fileNames = [];
+        }
+
+        if(fileNames.push === undefined) {
+            fileNames = [fileNames];
+        }
+
+        let fileReadingTasks = [];
+
+        fileNames.forEach((fileName)=>{
+            fileReadingTasks.push(new Promise((resolve, reject) => {
+                this.getFileDataFromFile(fileName).then(resolve, reject);
+            }));
         });
+
+        return Promise.all(fileReadingTasks);
 
     }
 
@@ -68,16 +91,16 @@ export class UrlService {
      * returns the files content specified in the 'file' parameter
      * @returns {Promise} which returns the files content on resolution
      */
-    public getFileDataFromFile(file: string): Promise<Object> {
+    public getFileDataFromFile(file: string): Promise<NameDataPair> {
 
         return new Promise((resolve, reject) => {
 
             if (file && file.length > 0) {
                 this.$http.get(file).then(
                     function (response: IHttpResponse<Object>) {
-                        if (response.status === 200) {
+                        if (response.status === UrlService.OK_CODE) {
                             Object.assign(response.data, {fileName: file});
-                            resolve(response.data);
+                            resolve({name: file, data:response.data});
                         } else {
                             reject();
                         }

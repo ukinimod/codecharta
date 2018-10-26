@@ -1,52 +1,76 @@
-import {Range} from "../../model/Range";
-import {Scale} from "../../model/Scale";
-import {DataService, DataServiceSubscriber, DataModel} from "../data/data.service";
+import {DataModel, DataService, DataServiceSubscriber} from "../data/data.service";
 import {
     CameraChangeSubscriber,
     ThreeOrbitControlsService
-} from "../../codeMap/threeViewer/threeOrbitControlsService";
+} from "../../ui/codeMap/threeViewer/threeOrbitControlsService";
 import {PerspectiveCamera} from "three";
 import {STATISTIC_OPS} from "../statistic/statistic.service";
-import {DeltaCalculatorService} from "../data/data.deltaCalculator.service";
-import * as d3 from "d3";
-import {DataDecoratorService} from "../data/data.decorator.service";
+import {CodeMap, CodeMapNode, Exclude, ExcludeType} from "../data/model/CodeMap";
+import {hierarchy, HierarchyNode} from "d3-hierarchy";
+
+export interface Range {
+    from: number;
+    to: number;
+    flipped: boolean;
+}
+
+export interface Scale {
+    x: number;
+    y: number;
+    z: number;
+}
+
+export enum KindOfMap {
+    Single = "Single",
+    Multiple = "Multiple",
+    Delta = "Delta"
+}
 
 export interface Settings {
 
-    map: any,
-    neutralColorRange: Range,
-    areaMetric: string,
-    heightMetric: string,
-    colorMetric: string,
-    deltas: boolean,
-    amountOfTopLabels: number,
-    scaling: Scale,
-    camera: Scale,
-    margin: number,
-    operation: STATISTIC_OPS,
-    deltaColorFlipped: boolean
-
+    map: CodeMap;
+    neutralColorRange: Range;
+    areaMetric: string;
+    heightMetric: string;
+    colorMetric: string;
+    mode: KindOfMap;
+    amountOfTopLabels: number;
+    scaling: Scale;
+    camera: Scale;
+    margin: number;
+    operation: STATISTIC_OPS;
+    deltaColorFlipped: boolean;
+    enableEdgeArrows: boolean;
+    maximizeDetailPanel: boolean;
+    invertHeight: boolean;
+    dynamicMargin: boolean;
+    isWhiteBackground: boolean;
+    blacklist: Array<Exclude>;
 }
 
 export interface SettingsServiceSubscriber {
-    onSettingsChanged(settings: Settings, event: Event)
+    onSettingsChanged(settings: Settings, event: Event);
 }
 
 export class SettingsService implements DataServiceSubscriber, CameraChangeSubscriber {
 
     public static SELECTOR = "settingsService";
+    public static MIN_MARGIN = 15;
+    public static MARGIN_FACTOR = 4;
 
     private _settings: Settings;
+
+    public numberOfCalls: number;
 
     private _lastDeltaState = false;
 
     /* ngInject */
     constructor(private urlService, private dataService: DataService, private $rootScope,
-                private threeOrbitControlsService: ThreeOrbitControlsService, private statisticMapService, private deltaCalculatorService: DeltaCalculatorService,
-                private dataDecoratorService: DataDecoratorService) {
+                private threeOrbitControlsService: ThreeOrbitControlsService) {
 
         this._settings = this.getInitialSettings(dataService.data.renderMap, dataService.data.metrics);
 
+        this.numberOfCalls = 0;
         dataService.subscribe(this);
         threeOrbitControlsService.subscribe(this);
 
@@ -76,20 +100,27 @@ export class SettingsService implements DataServiceSubscriber, CameraChangeSubsc
 
         this._lastDeltaState = false;
 
-        return {
+        let settings: Settings = {
             map: renderMap,
             neutralColorRange: r,
             areaMetric: this.getMetricByIdOrLast(0, metrics),
             heightMetric: this.getMetricByIdOrLast(1, metrics),
             colorMetric: this.getMetricByIdOrLast(2, metrics),
-            deltas: false,
+            mode: KindOfMap.Single,
             amountOfTopLabels: 1,
             scaling: s,
             camera: c,
-            margin: 1,
+            margin: 15,
             operation: STATISTIC_OPS.NOTHING,
-            deltaColorFlipped: false
+            deltaColorFlipped: false,
+            enableEdgeArrows: true,
+            maximizeDetailPanel: false,
+            invertHeight: false,
+            dynamicMargin: true,
+            isWhiteBackground: false,
+            blacklist: [],
         };
+        return settings;
 
     }
 
@@ -109,24 +140,27 @@ export class SettingsService implements DataServiceSubscriber, CameraChangeSubsc
      */
     public onDataChanged(data: DataModel) {
 
-        this._settings.map = data.renderMap; // reference map is always the map which should be drawn
+        if(data.metrics && data.renderMap && data.revisions) {
+            this._settings.map = data.renderMap; // reference map is always the map which should be drawn
+            this._settings.blacklist = data.renderMap.blacklist;
 
-        if (data.metrics.indexOf(this._settings.areaMetric) === -1) {
-            //area metric is not set or not in the new metrics and needs to be chosen
-            this._settings.areaMetric = this.getMetricByIdOrLast(0, data.metrics);
+            if (data.metrics.indexOf(this._settings.areaMetric) === -1) {
+                //area metric is not set or not in the new metrics and needs to be chosen
+                this._settings.areaMetric = this.getMetricByIdOrLast(0, data.metrics);
+            }
+
+            if (data.metrics.indexOf(this._settings.heightMetric) === -1) {
+                //height metric is not set or not in the new metrics and needs to be chosen
+                this._settings.heightMetric = this.getMetricByIdOrLast(1, data.metrics);
+            }
+
+            if (data.metrics.indexOf(this._settings.colorMetric) === -1) {
+                //color metric is not set or not in the new metrics and needs to be chosen
+                this._settings.colorMetric = this.getMetricByIdOrLast(2, data.metrics);
+            }
+
+            this.onSettingsChanged();
         }
-
-        if (data.metrics.indexOf(this._settings.heightMetric) === -1) {
-            //height metric is not set or not in the new metrics and needs to be chosen
-            this._settings.heightMetric = this.getMetricByIdOrLast(1, data.metrics);
-        }
-
-        if (data.metrics.indexOf(this._settings.colorMetric) === -1) {
-            //color metric is not set or not in the new metrics and needs to be chosen
-            this._settings.colorMetric = this.getMetricByIdOrLast(2, data.metrics);
-        }
-
-        this.onSettingsChanged();
 
     }
 
@@ -149,14 +183,14 @@ export class SettingsService implements DataServiceSubscriber, CameraChangeSubsc
      * Broadcasts a settings-changed event with the new {Settings} object as a payload
      * @emits {settings-changed} on call
      */
-    private onSettingsChanged() {
+    public onSettingsChanged() {
 
-        if (this._lastDeltaState && !this._settings.deltas) {
+        this.settings.margin = this.computeMargin();
+
+        if (this._lastDeltaState && this._settings.mode != KindOfMap.Delta) {
             this._lastDeltaState = false;
             this.onDeactivateDeltas();
-        } else
-
-        if (!this._lastDeltaState && this._settings.deltas) {
+        } else if (!this._lastDeltaState && this._settings.mode == KindOfMap.Delta) {
             this._lastDeltaState = true;
             this.onActivateDeltas();
         }
@@ -165,7 +199,6 @@ export class SettingsService implements DataServiceSubscriber, CameraChangeSubsc
     }
 
     /**
-     * TODO this method can be propably implemented much better
      * updates the settings object according to url parameters. url parameters are named like the accessors of the Settings object. E.g. scale.x or areaMetric
      * @emits {settings-changed} transitively on call
      */
@@ -173,8 +206,8 @@ export class SettingsService implements DataServiceSubscriber, CameraChangeSubsc
 
         let ctx = this;
 
-        var iterateProperties = function (obj, prefix) {
-            for (var i in obj) {
+        let iterateProperties = function (obj, prefix) {
+            for (let i in obj) {
                 if (obj.hasOwnProperty(i) && i !== "map" && i) {
 
                     if (typeof obj[i] === "string" || obj[i] instanceof String) {
@@ -219,14 +252,54 @@ export class SettingsService implements DataServiceSubscriber, CameraChangeSubsc
     }
 
     /**
+     * @returns {number}
+     *
+     * Function that computes the margin applied to a scenario related the square root of (the area divided
+     * by the number of buildings)
+     */
+    public computeMargin(
+        map: CodeMap = this.dataService.data.renderMap,
+        areaMetric: string = this.settings.areaMetric,
+        settingsMargin: number = this.settings.margin,
+        dynamicMargin: boolean = this.settings.dynamicMargin
+    ): number {
+
+        let margin: number;
+        if (map !== null && dynamicMargin) {
+            let root: CodeMapNode = map.root;
+
+            let leaves = hierarchy<CodeMapNode>(root).leaves();
+            let numberOfBuildings = 0;
+            let totalArea = 0;
+            leaves.forEach((c: HierarchyNode<CodeMapNode>) => {
+                numberOfBuildings++;
+                if(c.data.attributes && c.data.attributes[areaMetric]){
+                    totalArea += c.data.attributes[areaMetric];
+                }
+            });
+
+            margin = SettingsService.MARGIN_FACTOR * Math.round(Math.sqrt(
+                (totalArea / numberOfBuildings)));
+
+            margin = Math.min(100,Math.max(SettingsService.MIN_MARGIN, margin));
+        }
+
+        else {
+            margin = settingsMargin || SettingsService.MIN_MARGIN;
+        }
+
+        return margin;
+    }
+
+    /**
      * Updates query params to current settings
      */
     public getQueryParamString() {
 
         let result = "";
 
-        var iterateProperties = function (obj, prefix) {
-            for (var i in obj) {
+        let iterateProperties = function (obj, prefix) {
+            for (let i in obj) {
                 if (obj.hasOwnProperty(i) && i !== "map" && i) {
 
                     if (typeof obj[i] === "string" || obj[i] instanceof String) {
@@ -254,11 +327,44 @@ export class SettingsService implements DataServiceSubscriber, CameraChangeSubsc
     }
 
     /**
+     * Avoids the excesive calling of updateSettings with standard settings in order to increase the efficiency
+     * When the function is called with an argument it calls updateSettings in order to avoid the lost of the information
+     * contained in that argument.
+     *
+     * @param {Settings} settings
+     */
+    public applySettings(settings?: Settings) {
+
+        if (settings) {
+            this.updateSettings(settings);
+        }
+
+        else {
+            this.numberOfCalls++;
+            if (this.numberOfCalls > 4) {
+                this.numberOfCalls = 0;
+                this.onSettingsChanged();
+            }
+            else {
+                let currentCalls = this.numberOfCalls;
+                let _this = this;
+
+                setTimeout(function () {
+                    if (currentCalls == _this.numberOfCalls) {
+                        this.numberOfCalls = 0;
+                        _this.onSettingsChanged();
+                    }
+
+                }, 400);
+            }
+        }
+    }
+
+    /**
      * Applies given settings. ignores map. this ensures to copy settings object and prevent side effects
      * @param {Settings} settings
      */
-    public applySettings(settings: Settings = this._settings) {
-
+    private updateSettings(settings: Settings) {
         this._settings.neutralColorRange.to = settings.neutralColorRange.to;
         this._settings.neutralColorRange.from = settings.neutralColorRange.from;
         this._settings.neutralColorRange.flipped = settings.neutralColorRange.flipped;
@@ -277,12 +383,17 @@ export class SettingsService implements DataServiceSubscriber, CameraChangeSubsc
 
         this._settings.amountOfTopLabels = settings.amountOfTopLabels;
         this._settings.margin = settings.margin;
-        this._settings.deltas = settings.deltas;
+        this._settings.mode = settings.mode;
         this._settings.operation = settings.operation;
-        this._settings.deltaColorFlipped = this.settings.deltaColorFlipped;
+        this._settings.deltaColorFlipped = settings.deltaColorFlipped;
+        this._settings.maximizeDetailPanel = settings.maximizeDetailPanel;
+        this._settings.invertHeight = settings.invertHeight;
+        this._settings.dynamicMargin = settings.dynamicMargin;
+        this._settings.isWhiteBackground = settings.isWhiteBackground;
+        this._settings.blacklist = settings.blacklist;
 
         //TODO what to do with map ? should it even be a part of settings ? deep copy of map ?
-        this._settings.map = this.settings.map;
+        this._settings.map = settings.map || this.settings.map;
 
         this.onSettingsChanged();
 

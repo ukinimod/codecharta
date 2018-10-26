@@ -1,8 +1,8 @@
 import {DataServiceSubscriber, DataService, DataModel} from "../../core/data/data.service";
-import {SettingsService} from "../../core/settings/settings.service";
+import {KindOfMap, Settings, SettingsService} from "../../core/settings/settings.service";
 import {CodeMap} from "../../core/data/model/CodeMap";
-
-import $ from "jquery";
+import "./revisionChooser.scss";
+import "./revisionChooserFileDropDown.scss";
 
 /**
  * Controls the RevisionChooser
@@ -10,7 +10,12 @@ import $ from "jquery";
 export class RevisionChooserController implements DataServiceSubscriber{
 
     public revisions: CodeMap[];
-    public visible: boolean = false;
+    public settings: Settings;
+    public ui = {
+        chosenReference: null,
+        chosenComparison: null,
+    };
+    public show = KindOfMap;
 
     /* @ngInject */
 
@@ -21,54 +26,41 @@ export class RevisionChooserController implements DataServiceSubscriber{
      */
     constructor(
         private dataService: DataService,
-        private settingsService: SettingsService
+        private settingsService: SettingsService,
+        private $rootScope
     ) {
         this.revisions = dataService.data.revisions;
+        this.settings = settingsService.settings;
+        this.ui.chosenComparison = this.dataService.getIndexOfMap(this.dataService.getComparisonMap(), this.revisions);
+        this.ui.chosenReference = this.dataService.getIndexOfMap(this.dataService.getReferenceMap(), this.revisions);
         dataService.subscribe(this);
+        $rootScope.$on("revision-mode-changed", (event, data)=>{
+            this.show = data;
+        });
+
     }
 
-    /**
-     * Links the click Handler
-     * @param {Scope} scope
-     * @param {object} element dom element
-     */
-    $postLink() {
-        $("#revisionButton").bind("click", this.toggle.bind(this));
-        $("#mapButton").bind("click", this.toggle.bind(this));
-    }
-
-    /**
-     * Toggles the visibility
-     */
-    toggle(){
-        if (this.visible) {
-            //noinspection TypeScriptUnresolvedFunction
-            $("#revisionChooser").animate({left: -500 + "px"});
-            this.visible = false;
-        } else {
-            //noinspection TypeScriptUnresolvedFunction
-            $("#revisionChooser").animate({left: 2.8+"em"});
-            this.visible = true;
-        }
-    }
-
-    /**
-     * called on data change
-     * @param {DataModel} data
-     */
     onDataChanged(data: DataModel) {
         this.revisions = data.revisions;
+        this.ui.chosenComparison= this.dataService.getIndexOfMap(this.dataService.getComparisonMap(), this.revisions);
+        this.ui.chosenReference = this.dataService.getIndexOfMap(this.dataService.getReferenceMap(), this.revisions);
     }
 
-    loadComparisonMap(key: number) {
-        this.dataService.setComparisonMap(key);
+    onReferenceChange(mapIndex: number) {
+        this.dataService.setReferenceMap(mapIndex);
+    }
+
+    onComparisonChange(mapIndex: number) {
+        this.dataService.setComparisonMap(mapIndex);
     }
 
 
-    loadReferenceMap(key: number) {
-        this.dataService.setReferenceMap(key);
-    }
 
+    onShowChange(settings: Settings){
+        this.settings = settings;
+        this.settingsService.applySettings();
+
+     }
 }
 
 export const revisionChooserComponent = {
@@ -76,7 +68,11 @@ export const revisionChooserComponent = {
     template: require("./revisionChooser.html"),
     controller: RevisionChooserController
 };
-
+export const revisionChooserFileDropDownComponent = {
+    selector: "revisionChooserFileDropDownComponent",
+    template: require("./revisionChooserFileDropDown.html"),
+    controller: RevisionChooserController
+};
 
 
 

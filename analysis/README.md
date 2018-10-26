@@ -12,12 +12,18 @@ CodeCharta analysis tools generally follow the pipes and filters architecture pr
 
 Components that import data from an external source, e.g. SonarQube, and generate visualisation data.
 
+
 | Source        | Project                                                 |
 | ---           | ---                                                     |
+| CodeMaat CSV    | [CodeMaatImporter](import/CodeMaatImporter/README.md)   |
+| Crococosmo    | [CrococosmoImporter](import/CrococosmoImporter/README.md)             |
 | generic CSV   | [CSVImporter](import/CSVImporter/README.md)             |
+| Jasome        | [JasomeImporter](import/JasomeImporter/README.md)         |
+| SCITools' Understand CSV | [UnderstandImporter](import/UnderstandImporter/README.md)         |
 | SCM log       | [SCMLogParser](import/SCMLogParser/README.md)            |
 | SonarQube     | [SonarImporter](import/SonarImporter/README.md)         |
-| SourceMonitor | [SourceMonitorImporter](import/SourceMonitorImporter/README.md) |
+| Source Code   | [SourceCodeParser](import/SourceCodeParser/README.md)         |
+| SourceMonitor CSV | [SourceMonitorImporter](import/CSVImporter/README.md)         |
 
 ### Filter
 
@@ -26,12 +32,22 @@ Components that take visualisation data and modifies them.
 | Name                                        | Description                 |
 | ---                                         | ---                         |
 | [MergeFilter](filter/MergeFilter/README.md) | merges multiple json files  |
+| [EdgeFilter](filter/EdgeFilter/README.md)   | aggregates edge-attributes of each appropriate node and inserts them into the nodes attribute-list |
+
+### Exporter
+
+Components that export data from visualisation data to other formats.
+
+| Target        | Project                                                 |
+| ---           | ---                                                     |
+|  CSV (experimental) | [CSVExporter](export/CSVExporter/README.md)             |
 
 ### Additional Tools
 
 | Name                                             | Description                  |
 | ---                                              | ---                          |
-| [ValidationTool](tools/ValidationTool/README.md) | validates a given json file |
+| [ValidationTool](tools/ValidationTool/README.md) | validates a given json file  |
+
 
 ## Requirements
 

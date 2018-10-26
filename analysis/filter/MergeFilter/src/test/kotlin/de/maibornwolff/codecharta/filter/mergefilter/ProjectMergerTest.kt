@@ -30,94 +30,168 @@
 package de.maibornwolff.codecharta.filter.mergefilter
 
 import de.maibornwolff.codecharta.model.Project
+import de.maibornwolff.codecharta.model.ProjectMatcher
 import de.maibornwolff.codecharta.serialization.ProjectDeserializer
 import org.hamcrest.CoreMatchers
-import org.junit.Assert
-import org.junit.Test
+import org.hamcrest.MatcherAssert.assertThat
+import org.jetbrains.spek.api.Spek
+import org.jetbrains.spek.api.dsl.describe
+import org.jetbrains.spek.api.dsl.it
 import java.io.InputStreamReader
+import kotlin.test.assertFailsWith
 
-val DEFAULT_API_VERSION = "1.0"
+class ProjectMergerTest : Spek({
+    describe("using a recursive node merger strategy") {
+        val nodeMergerStrategy = RecursiveNodeMergerStrategy()
 
-class ProjectMergerTest {
-    val nodeMergerStrategy = RecursiveNodeMergerStrategy()
+        describe("merging an project with unsupported API version") {
+            val project = Project("project", apiVersion = "unsupported Version")
+
+            it("should throw a exception") {
+                assertFailsWith(MergeException::class) {
+                    ProjectMerger(listOf(project), nodeMergerStrategy).merge()
+                }
+            }
+        }
+
+        describe("merging project with different names") {
+            val projects = listOf(
+                    Project("test1"),
+                    Project("test2")
+            )
+
+            it("should throw a exception") {
+                val firstProjectName = ProjectMerger(projects, nodeMergerStrategy).extractProjectName()
+                assertThat(firstProjectName, CoreMatchers.`is`("test1"))
+            }
+        }
+
+        describe("merging project with same API major versions") {
+            val projectName = "test"
+            val projects = listOf(
+                    Project(projectName, apiVersion = "1.0"),
+                    Project(projectName, apiVersion = "1.1")
+            )
+
+            it("should merge projects") {
+                val project = ProjectMerger(projects, nodeMergerStrategy).merge()
+                assertThat(project.projectName, CoreMatchers.`is`(projectName))
+            }
+        }
+
+        describe("merging project with different API major versions") {
+            val projects = listOf(
+                    Project("test", apiVersion = "1.0"),
+                    Project("test", apiVersion = "2.0")
+            )
+
+            it("should throw a exception") {
+                assertFailsWith(MergeException::class) {
+                    ProjectMerger(projects, nodeMergerStrategy).merge()
+                }
+            }
+        }
+
+        describe("merging projects with same name and API version") {
+            val projectName = "test"
+            val projects = listOf(
+                    Project(projectName, apiVersion = "1.1"),
+                    Project(projectName, apiVersion = "1.1")
+            )
+
+            it("should extract project name") {
+                val name = ProjectMerger(projects, nodeMergerStrategy).extractProjectName()
+                assertThat(name, CoreMatchers.`is`(projectName))
+            }
+        }
+
+        val TEST_JSON_FILE = "test.json"
+        val TEST_JSON_FILE2 = "test2.json"
+
+        describe("merging same project") {
+            val inStream = this.javaClass.classLoader.getResourceAsStream(TEST_JSON_FILE)
+            val originalProject = ProjectDeserializer.deserializeProject(InputStreamReader(inStream))
+            val projectList = listOf(originalProject, originalProject)
+
+            it("should return project") {
+                val project = ProjectMerger(projectList, nodeMergerStrategy).merge()
+                assertThat(project, ProjectMatcher.matchesProjectUpToVersion(originalProject))
+            }
+        }
+
+        describe("merging two projects") {
+            val originalProject1 = ProjectDeserializer.deserializeProject(InputStreamReader(this.javaClass.classLoader.getResourceAsStream(TEST_JSON_FILE)))
+            val originalProject2 = ProjectDeserializer.deserializeProject(InputStreamReader(this.javaClass.classLoader.getResourceAsStream(TEST_JSON_FILE2)))
+            val projectList = listOf(originalProject1, originalProject2)
+
+            it("should return different project") {
+                val project = ProjectMerger(projectList, nodeMergerStrategy).merge()
+
+                assertThat(project == originalProject1, CoreMatchers.`is`(false))
+                assertThat(project == originalProject2, CoreMatchers.`is`(false))
+            }
+        }
+
+        val TEST_EDGES_JSON_FILE = "testEdges1.json"
+        val TEST_EDGES_JSON_FILE2 = "testEdges2.json"
+
+        describe("merging two projects with edges") {
+            val originalProject1 = ProjectDeserializer.deserializeProject(InputStreamReader(this.javaClass.classLoader.getResourceAsStream(TEST_EDGES_JSON_FILE)))
+            val originalProject2 = ProjectDeserializer.deserializeProject(InputStreamReader(this.javaClass.classLoader.getResourceAsStream(TEST_EDGES_JSON_FILE2)))
+            val projectList = listOf(originalProject1, originalProject2)
+
+            val project = ProjectMerger(projectList, nodeMergerStrategy).merge()
+
+            it("should return different project") {
+                assertThat(project == originalProject1, CoreMatchers.`is`(false))
+                assertThat(project == originalProject2, CoreMatchers.`is`(false))
+            }
+
+            it("should have correct number of dependencies") {
+                assertThat(project.sizeOfEdges(), CoreMatchers.`is`(6))
+            }
+
+            it("should have correct number of files") {
+                assertThat(project.size, CoreMatchers.`is`(4))
+            }
+
+            it("should have correct number of attributeTypes") {
+                assertThat(project.attributeTypes["edges"]!!.size, CoreMatchers.`is`(2))
+                assertThat(project.attributeTypes["nodes"]!!.size, CoreMatchers.`is`(12))
+            }
+
+            it("should have correct number of attributes") {
+                assertThat(project.rootNode.children.first().attributes.size, CoreMatchers.`is`(11))
+            }
+        }
 
 
-    @Test(expected = MergeException::class)
-    fun should_throw_exception_if_APIVersion_NotSupported() {
-        // given
-        val project = Project("project", listOf(), "unsupported Version")
+        describe("merging two projects with edges with leafNodeMergingStrategy") {
+            val originalProject1 = ProjectDeserializer.deserializeProject(InputStreamReader(this.javaClass.classLoader.getResourceAsStream(TEST_EDGES_JSON_FILE)))
+            val originalProject2 = ProjectDeserializer.deserializeProject(InputStreamReader(this.javaClass.classLoader.getResourceAsStream(TEST_EDGES_JSON_FILE2)))
+            val projectList = listOf(originalProject1, originalProject2)
 
-        // when
-        ProjectMerger(listOf(project), nodeMergerStrategy).merge()
+            val nodeMergerStrategy: NodeMergerStrategy = LeafNodeMergerStrategy(false)
+            val project = ProjectMerger(projectList, nodeMergerStrategy).merge()
 
-        // then throw exception
+            it("should return different project") {
+
+                assertThat(project == originalProject1, CoreMatchers.`is`(false))
+                assertThat(project == originalProject2, CoreMatchers.`is`(false))
+            }
+
+            it("should have correct number of edges") {
+                assertThat(project.sizeOfEdges(), CoreMatchers.`is`(0))
+            }
+
+            it("should have correct number of files") {
+                assertThat(project.size, CoreMatchers.`is`(4))
+            }
+
+            it("should have correct number of attributes") {
+                assertThat(project.rootNode.children.first().attributes.size, CoreMatchers.`is`(11))
+
+            }
+        }
     }
-
-    @Test(expected = MergeException::class)
-    fun should_throw_exception_if_multiple_names_provided() {
-        // given
-        val projects = listOf(Project("test1", listOf(), DEFAULT_API_VERSION), Project("test2", listOf(), DEFAULT_API_VERSION))
-
-        // when
-        ProjectMerger(projects, nodeMergerStrategy).extractProjectName()
-
-        // then throw exception
-    }
-
-    @Test
-    fun should_extract_project_name_if_the_same() {
-        // given
-        val projectName = "test"
-        val projects = listOf(Project(projectName, listOf(), DEFAULT_API_VERSION), Project(projectName, listOf(), DEFAULT_API_VERSION))
-
-        // when
-        val name = ProjectMerger(projects, nodeMergerStrategy).extractProjectName()
-
-        // then
-        Assert.assertThat(name, CoreMatchers.`is`(projectName))
-    }
-
-    @Test(expected = MergeException::class)
-    fun should_throw_exception_if_multiple_APIVersion_provided() {
-        // given
-        val projectName = "test"
-        val projects = listOf(Project(projectName, listOf(), "1.0"), Project(projectName, listOf(), "2.0"))
-
-        // when
-        ProjectMerger(projects, nodeMergerStrategy).merge()
-
-        // then throw exception
-    }
-
-    val TEST_JSON_FILE = "test.json"
-    val TEST_JSON_FILE2 = "test2.json"
-
-    @Test
-    fun merging_same_project_should_return_project() {
-        // given
-        val inStream = this.javaClass.classLoader.getResourceAsStream(TEST_JSON_FILE)
-        val originalProject = ProjectDeserializer.deserializeProject(InputStreamReader(inStream))
-        val projectList = listOf(originalProject, originalProject)
-
-        // when
-        val project = ProjectMerger(projectList, nodeMergerStrategy).merge()
-
-        // then
-        Assert.assertThat(project, CoreMatchers.`is`(originalProject))
-    }
-
-    @Test
-    fun merging_different_projects_should_return_merged_project() {
-        // given
-        val originalProject1 = ProjectDeserializer.deserializeProject(InputStreamReader(this.javaClass.classLoader.getResourceAsStream(TEST_JSON_FILE)))
-        val originalProject2 = ProjectDeserializer.deserializeProject(InputStreamReader(this.javaClass.classLoader.getResourceAsStream(TEST_JSON_FILE2)))
-        val projectList = listOf(originalProject1, originalProject2)
-
-        // when
-        val project = ProjectMerger(projectList, nodeMergerStrategy).merge()
-
-        // then
-        Assert.assertThat(project == originalProject1, CoreMatchers.`is`(false))
-        Assert.assertThat(project == originalProject2, CoreMatchers.`is`(false))
-    }
-}
+})

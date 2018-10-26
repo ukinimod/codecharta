@@ -2,15 +2,15 @@
   "author": "MaibornWolff GmbH <dist_intern_codecharta@maibornwolff.de>",
   "homepage": "https://maibornwolff.github.io/codecharta/",
   "bugs": {
-    "url": "https://github.com/MaibornWolff/codecharta/issuess",
+    "url": "https://github.com/MaibornWolff/codecharta/issues",
     "email": "dist_intern_codecharta@maibornwolff.de"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/MaibornWolff/codecharta.git"
   },
-  "name": "@maibornwolff/codecharta-analysis",
-  "version": "1.7.2",
+  "name": "codecharta-analysis",
+  "version": "1.17.0",
   "description": "MaibornWolff CodeCharta Analysis Tools",
   "scripts": {
     "prepare": "rm -rf ../build/install/codecharta-analysis public && ../gradlew -p .. installDist && cp -R ../build/install/codecharta-analysis public"

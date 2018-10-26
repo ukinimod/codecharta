@@ -1,10 +1,28 @@
-import {DataServiceSubscriber, DataService, DataModel} from "../../core/data/data.service";
-import {SettingsServiceSubscriber, SettingsService, Settings} from "../../core/settings/settings.service";
+import {DataModel, DataService, DataServiceSubscriber} from "../../core/data/data.service";
+import {
+    KindOfMap,
+    Range,
+    Settings,
+    SettingsService,
+    SettingsServiceSubscriber
+} from "../../core/settings/settings.service";
 import $ from "jquery";
-import {MapColors} from "../../codeMap/rendering/renderSettings";
-import {Range} from "../../model/Range";
+import {MapColors} from "../codeMap/rendering/renderSettings";
 import {ITimeoutService} from "angular";
 import {STATISTIC_OPS} from "../../core/statistic/statistic.service";
+import "./legendPanel.scss";
+import {CodeMapNode} from "../../core/data/model/CodeMap";
+import {hierarchy} from "d3-hierarchy";
+
+export interface MarkingPackages {
+    markingColor: string,
+    packageItem: PackageItem[],
+}
+
+export interface PackageItem {
+    name: string,
+    path: string,
+}
 
 export class LegendPanelController implements DataServiceSubscriber, SettingsServiceSubscriber {
 
@@ -21,52 +39,27 @@ export class LegendPanelController implements DataServiceSubscriber, SettingsSer
     private select: string;
     private operation: string;
     private deltaColorsFlipped: boolean;
-
-    private visible: boolean = false;
+    private markingPackages: MarkingPackages[];
 
     /* @ngInject */
     constructor(private $timeout: ITimeoutService,
                 private settingsService: SettingsService,
                 private dataService: DataService,
                 private $element: Element) {
-
         let ctx = this;
 
         $timeout(()=> {
-            ctx.onDataChanged(dataService.data)
+            ctx.onDataChanged(dataService.data);
         });
         $timeout(()=> {
-            ctx.onSettingsChanged(settingsService.settings)
+            ctx.onSettingsChanged(settingsService.settings);
         });
 
         this.settingsService.subscribe(this);
 
         this.dataService.subscribe(this);
 
-    }
-
-    /**
-     * Links the click Handler
-     * @param {Scope} scope
-     * @param {object} element dom element
-     */
-    $postLink() {
-        $(this.$element).bind("click", this.toggle.bind(this));
-    }
-
-    /**
-     * Toggles the visibility
-     */
-    toggle() {
-        if (this.visible) {
-            //noinspection TypeScriptUnresolvedFunction
-            $("#legendPanel").animate({left: -500 + "px"});
-            this.visible = false;
-        } else {
-            //noinspection TypeScriptUnresolvedFunction
-            $("#legendPanel").animate({left: 2.8 + "em"});
-            this.visible = true;
-        }
+        this.initAnimations();
     }
 
     onDataChanged(data: DataModel) {
@@ -88,12 +81,129 @@ export class LegendPanelController implements DataServiceSubscriber, SettingsSer
         this.$timeout(()=>$("#negativeDelta").attr("src", this.nd), 200);
     }
 
+
+    private setMarkingPackagesIntoLegend() {
+        this.markingPackages = [];
+        if (this.settingsService.settings.map) {
+            var rootNode: CodeMapNode = this.settingsService.settings.map.root;
+
+            hierarchy<CodeMapNode>(rootNode).descendants().forEach((hierarchyNode) => {
+                const node: CodeMapNode = hierarchyNode.data;
+                if (node.markingColor) {
+                    const mp = this.getNewMarkingPackageFromNode(node);
+                    if (this.legendContainsMarkingPackages()) {
+                        this.handleMarkingPackageWithExistingColor(mp);
+                    } else {
+                        this.markingPackages = [mp];
+                    }
+                }
+            });
+        }
+    }
+
+    private legendContainsMarkingPackages() {
+        return this.markingPackages &&
+            this.markingPackages.length > 0 &&
+            this.markingPackages != [];
+    }
+
+    private getNewMarkingPackageFromNode(node: CodeMapNode) {
+        return {
+            markingColor: node.markingColor,
+            packageItem: [{
+                name: node.name.split('/').slice(-1)[0],
+                path: node.path
+            }]
+        };
+    }
+
+    private handleMarkingPackageWithExistingColor(mp: MarkingPackages) {
+        var addMP = true;
+        const packagesWithSameMarkingColor: MarkingPackages[] = this.getPackagesWithSameMarkingColor(mp);
+        if (packagesWithSameMarkingColor != []) {
+            for (const mpWithSameColor of packagesWithSameMarkingColor) {
+                if (this.isPartOfSecondPackage(mp, mpWithSameColor)) {
+                    addMP = false;
+                }
+            }
+        } else {
+            addMP = true;
+        }
+        if (addMP) {
+            this.markingPackages.push(mp);
+        }
+    }
+
+    private getPackagesWithSameMarkingColor(mp: MarkingPackages) {
+        var packagesWithSameMarkingColor: MarkingPackages[] = [];
+        for(const otherMP of this.markingPackages) {
+            if (otherMP.markingColor == mp.markingColor) {
+                packagesWithSameMarkingColor.push(otherMP);
+            }
+        }
+        return packagesWithSameMarkingColor;
+    }
+
+    private isPartOfSecondPackage(mp1: MarkingPackages, mp2: MarkingPackages) {
+        return mp1.packageItem[0].path.indexOf(mp2.packageItem[0].path) >= 0;
+    }
+
+    private combineMarkingPackagesByColors() {
+        const allMP = this.markingPackages;
+        this.markingPackages = [];
+        if (allMP) {
+            for (var i = 0; i < allMP.length; i++) {
+                var markingPackage: MarkingPackages = {
+                    markingColor: this.getImageDataUri(Number(allMP[i].markingColor)),
+                    packageItem: [{
+                        name: this.getPackagePathPreview(allMP[i]),
+                        path: allMP[i].packageItem[0].path,
+                    }],
+                };
+
+                const markingPackageWithSameColor = this.getPackagesWithSameMarkingColor(markingPackage);
+                if (markingPackageWithSameColor != [] && markingPackageWithSameColor.length > 0) {
+                    const index = this.markingPackages.indexOf(markingPackageWithSameColor[0]);
+                    this.markingPackages[index].packageItem.push(markingPackage.packageItem[0]);
+                } else {
+                    this.markingPackages.push(markingPackage);
+                }
+            }
+        }
+    }
+
+    getPackagePathPreview(mp: MarkingPackages) {
+        const MAX_NAME_LENGTH = {
+            lowerLimit: 24,
+            upperLimit: 28,
+        };
+        const packageName = mp.packageItem[0].name;
+        const packagePath = mp.packageItem[0].path;
+
+        if (packageName.length > MAX_NAME_LENGTH.lowerLimit && packageName.length < MAX_NAME_LENGTH.upperLimit) {
+            return ".../" + packageName;
+
+        } else if (packageName.length > MAX_NAME_LENGTH.upperLimit) {
+            const firstPart = packageName.substr(0, MAX_NAME_LENGTH.lowerLimit / 2);
+            const secondPart = packageName.substr(packageName.length - MAX_NAME_LENGTH.lowerLimit / 2);
+            return firstPart + "..." + secondPart;
+
+        } else {
+            const from = Math.max(packagePath.length - MAX_NAME_LENGTH.lowerLimit, 0);
+            const previewPackagePath = packagePath.substring(from);
+            const rootNode = this.settingsService.settings.map.root;
+            const startingDots = (previewPackagePath.startsWith(rootNode.path)) ? "" : "...";
+            return startingDots + previewPackagePath;
+        }
+    }
+
     onSettingsChanged(s: Settings) {
         this.range = s.neutralColorRange;
         this.areaMetric = s.areaMetric;
         this.heightMetric = s.heightMetric;
         this.colorMetric = s.colorMetric;
         this.deltaColorsFlipped = s.deltaColorFlipped;
+        this.deltas = s.mode == KindOfMap.Delta;
 
         this.positive = this.getImageDataUri(MapColors.positive);
         this.neutral = this.getImageDataUri(MapColors.neutral);
@@ -107,12 +217,13 @@ export class LegendPanelController implements DataServiceSubscriber, SettingsSer
         $("#select").attr("src", this.select);
 
         this.refreshDeltaColors();
-
+        this.setMarkingPackagesIntoLegend();
+        this.combineMarkingPackagesByColors();
     }
 
     getImageDataUri(hex: number): string {
         let hexS: string = "#" + hex.toString(16);
-        var color: string = this.encodeHex(hexS);
+        let color: string = this.encodeHex(hexS);
         return this.generatePixel(color);
     }
 
@@ -130,11 +241,11 @@ export class LegendPanelController implements DataServiceSubscriber, SettingsSer
     }
 
     encodeTriplet(e1: number, e2: number, e3: number): string {
-        var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-        var enc1 = e1 >> 2;
-        var enc2 = ((e1 & 3) << 4) | (e2 >> 4);
-        var enc3 = ((e2 & 15) << 2) | (e3 >> 6);
-        var enc4 = e3 & 63;
+        let keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        let enc1 = e1 >> 2;
+        let enc2 = ((e1 & 3) << 4) | (e2 >> 4);
+        let enc3 = ((e2 & 15) << 2) | (e3 >> 6);
+        let enc4 = e3 & 63;
         return keyStr.charAt(enc1) + keyStr.charAt(enc2) + keyStr.charAt(enc3) + keyStr.charAt(enc4);
     }
 
@@ -144,10 +255,22 @@ export class LegendPanelController implements DataServiceSubscriber, SettingsSer
     }
 
     setOperation(operation: STATISTIC_OPS): string{
-        if(operation=== STATISTIC_OPS.NOTHING){
+        if(operation=== STATISTIC_OPS.NOTHING || !operation){
             return "";
         }
         return (<string>operation).replace("_", " ").toLowerCase();
+    }
+
+    private initAnimations() {
+        $(document).ready(function(){
+            let start = 40;
+            let target = -500;
+            let visible = false;
+            $("legend-panel-component .panel-button").click(function(){
+                $("legend-panel-component .block-wrapper").animate({left: visible ? target+"px" : start+"px"}, "fast");
+                visible = !visible;
+            });
+        });
     }
 
 }
@@ -157,7 +280,6 @@ export const legendPanelComponent = {
     template: require("./legendPanel.html"),
     controller: LegendPanelController
 };
-
 
 
 

@@ -14,6 +14,10 @@ module.exports = {
             use: ['style-loader', 'css-loader']
         },
         {
+            test: /\.scss$/,
+            use: ['style-loader', 'css-loader', 'sass-loader?sourceMap']
+        },
+        {
             test: /\.(png|svg|jpg|gif)$/, use: ['file-loader']
         },
         {
@@ -24,8 +28,12 @@ module.exports = {
             use: ['file-loader']
         },
         {
+            test: /\.(ico)$/,
+            use: ['file-loader?name=[name].[ext]']
+        },
+        {
             test: /\.ts(x?)$/,
-            use: ['babel-loader', 'ts-loader?configFile=tsconfig.webpack.json'],
+            use: ['babel-loader', 'ts-loader?configFile=tsconfig.json'],
 
         },
         {

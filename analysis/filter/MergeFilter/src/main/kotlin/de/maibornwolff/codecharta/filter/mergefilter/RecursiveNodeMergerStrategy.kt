@@ -29,31 +29,36 @@
 
 package de.maibornwolff.codecharta.filter.mergefilter
 
-import de.maibornwolff.codecharta.model.Node
+import de.maibornwolff.codecharta.model.MutableNode
 
 /**
  * merges nodes recursively if their paths coincide
  */
-class RecursiveNodeMergerStrategy : NodeMergerStrategy {
-    private val flatNodeMerger = NodeMerger()
+class RecursiveNodeMergerStrategy(ignoreCase: Boolean = false) : NodeMergerStrategy {
+    private val mergeConditionSatisfied: (MutableNode, MutableNode) -> Boolean
 
-    private val mergeConditionSatisfied = { n1: Node, n2: Node -> n1.name == n2.name }
-
-    override fun mergeNodeLists(lists: List<List<Node>>?): List<Node> {
-        return lists!!.fold(listOf(), { nodes, actual -> reduceNodeList(nodes, actual) })
+    init {
+        mergeConditionSatisfied = if (ignoreCase) { n1: MutableNode, n2: MutableNode -> n1.name.toUpperCase() == n2.name.toUpperCase() }
+        else { n1: MutableNode, n2: MutableNode -> n1.name == n2.name }
     }
 
-    private fun reduceNodeList(total: List<Node>, actual: List<Node>): List<Node> {
-        return actual.fold(total, { t: List<Node>, a: Node ->
-            t.map { if (mergeConditionSatisfied(it, a)) merge(it, a) else listOf(it) }
-            when {
-                t.filter { mergeConditionSatisfied(it, a) }.count() > 0 -> t.map { if (mergeConditionSatisfied(it, a)) merge(it, a) else it }
-                else -> t + a
-            }
-        })
+    override fun mergeNodeLists(lists: List<List<MutableNode>>): List<MutableNode> {
+        return if (lists.isEmpty()) listOf()
+        else lists.reduce { total, next ->
+            next.fold(total, { t: List<MutableNode>, a: MutableNode ->
+                t.map { if (mergeConditionSatisfied(it, a)) merge(it, a) else it }.map { listOf(it) }
+                when {
+                    t.filter { mergeConditionSatisfied(it, a) }.count() > 0 ->
+                        t.map { if (mergeConditionSatisfied(it, a)) merge(it, a) else it }
+                    else -> t + a
+                }
+            })
+        }
     }
 
-    private fun merge(vararg nodes: Node): Node {
-        return flatNodeMerger.merge(this, *nodes)
+    private fun merge(vararg nodes: MutableNode): MutableNode {
+        val node = nodes[0].merge(nodes.toList())
+        node.children.addAll(this.mergeNodeLists(nodes.map { it.children }))
+        return node
     }
 }

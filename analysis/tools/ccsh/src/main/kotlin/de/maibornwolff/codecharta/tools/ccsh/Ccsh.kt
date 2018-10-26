@@ -29,11 +29,18 @@
 
 package de.maibornwolff.codecharta.tools.ccsh
 
+import de.maibornwolff.codecharta.exporter.csv.CSVExporter
+import de.maibornwolff.codecharta.filter.edgefilter.EdgeFilter
 import de.maibornwolff.codecharta.filter.mergefilter.MergeFilter
+import de.maibornwolff.codecharta.importer.codemaat.CodeMaatImporter
+import de.maibornwolff.codecharta.importer.crococosmo.CrococosmoImporter
 import de.maibornwolff.codecharta.importer.csv.CSVImporter
 import de.maibornwolff.codecharta.importer.csv.SourceMonitorImporter
+import de.maibornwolff.codecharta.importer.jasome.JasomeImporter
 import de.maibornwolff.codecharta.importer.scmlogparser.SCMLogParser
 import de.maibornwolff.codecharta.importer.sonar.SonarImporterMain
+import de.maibornwolff.codecharta.importer.sourcecodeparser.SourceCodeParserMain
+import de.maibornwolff.codecharta.importer.understand.UnderstandImporter
 import de.maibornwolff.codecharta.tools.validation.ValidationTool
 import picocli.CommandLine
 import java.util.concurrent.Callable
@@ -44,11 +51,18 @@ import java.util.concurrent.Callable
         subcommands = [
             ValidationTool::class,
             MergeFilter::class,
+            EdgeFilter::class,
             CSVImporter::class,
-            SourceMonitorImporter::class,
             SonarImporterMain::class,
+            SourceMonitorImporter::class,
             SCMLogParser::class,
-            Installer::class
+            Installer::class,
+            CSVExporter::class,
+            CrococosmoImporter::class,
+            SourceCodeParserMain::class,
+            UnderstandImporter::class,
+            CodeMaatImporter::class,
+            JasomeImporter::class
         ],
         versionProvider = Ccsh.ManifestVersionProvider::class,
         footer = ["Copyright(c) 2018, MaibornWolff GmbH"]

@@ -1,136 +1,144 @@
-import * as d3 from "d3";
+import {CodeMapNode, Edge, Exclude, ExcludeType} from "../data/model/CodeMap";
+import {node} from "../../ui/codeMap/rendering/node";
 import {DataService} from "../data/data.service";
-import {CodeMap, CodeMapNode} from "../data/model/CodeMap";
-import {HierarchyNode, HierarchyRectangularNode} from "d3-hierarchy";
-import {node} from "../../codeMap/rendering/node";
+import * as d3 from "d3";
+import {hierarchy, HierarchyNode} from "d3";
+import {TreeMapUtils} from "./treemap.util";
+import {CodeMapUtilService} from "../../ui/codeMap/codeMap.util.service";
 
-/**
- * This service transforms valid file data to a custom treemap. Our custom treemap has a 3rd axis added to the nodes.
- */
-class TreeMapService {
+export interface ValuedCodeMapNode {
+    data: CodeMapNode;
+    children?: ValuedCodeMapNode[];
+    value: number;
+}
 
-    public static SELECTOR = "treeMapService";
+export interface SquarifiedValuedCodeMapNode {
+    data: CodeMapNode;
+    children?: SquarifiedValuedCodeMapNode[];
+    parent?: SquarifiedValuedCodeMapNode;
+    value: number;
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+}
+
+export interface TreeMapSettings {
+    size: number;
+    areaKey: string;
+    heightKey: string;
+    margin: number;
+    invertHeight: boolean;
+    visibleEdges: Edge[];
+    blacklist: Array<Exclude>;
+}
+
+export class TreeMapService {
+
+    private static HEIGHT_DIVISOR = 1;
+    private static FOLDER_HEIGHT = 2;
+    private static MIN_BUILDING_HEIGHT = 2;
+    private static HEIGHT_VALUE_WHEN_METRIC_NOT_FOUND = 0;
+    private static PADDING_SCALING_FACTOR = 0.4;
 
     /* @ngInject */
-    constructor(private dataService: DataService) {
+    constructor(private dataService: DataService) {}
+
+    public createTreemapNodes(data: CodeMapNode, s: TreeMapSettings, edges: Edge[]): node {
+        const squarified: SquarifiedValuedCodeMapNode = this.squarify(data, s, edges);
+        const heighted = this.addMapScaledHeightDimensionAndFinalizeFromRoot(squarified, edges, s);
+        return heighted;
     }
 
-    /**
-     * creates an array of fully transformed/customized and visible {d3#treemap} nodes.
-     * @external {d3#treemap} https://github.com/d3/d3-hierarchy/blob/master/README.md#treemap
-     * @param {Object} data valid data
-     * @param {number} w treemap width for calculation
-     * @param {number} l treemap length for calculation
-     * @param {number} p padding between treemap squares
-     * @param {string} areaKey area metric name
-     * @param {string} heightKey height metric name
-     */
-    createTreemapNodes(
-        data: CodeMapNode,
-        w: number,
-        l: number,
-        p: number,
-        areaKey: string,
-        heightKey: string
-    ) {
+    private squarify(data: CodeMapNode, s: TreeMapSettings, edges: Edge[]): SquarifiedValuedCodeMapNode {
+        let root: HierarchyNode<CodeMapNode> = d3.hierarchy<CodeMapNode>(data);
+        const blacklisted = CodeMapUtilService.numberOfBlacklistedNodes(root.descendants().map(d=>d.data), s.blacklist);
+        let nodesPerSide = 2 * Math.sqrt(root.descendants().length - blacklisted);
+        let treeMap = d3.treemap<CodeMapNode>()
+            .size([s.size + nodesPerSide*s.margin, s.size + nodesPerSide*s.margin])
+            .paddingOuter(s.margin * TreeMapService.PADDING_SCALING_FACTOR || 1)
+            .paddingInner(s.margin * TreeMapService.PADDING_SCALING_FACTOR || 1);
 
-        let treeMap = d3.treemap()
-            .size([w, l])
-            .padding(p || 1);
-
-        let root = d3.hierarchy(data);
-
-        root.descendants().forEach((l: any)=> {
-            l.isLeaf = false;
-        });
-
-        root.leaves().forEach((l: any)=> {
-            l.isLeaf = true;
-        });
-
-        let nodes = treeMap(root.sum((node)=>this.getArea(node, areaKey))).descendants();
-
-        let maxHeight = this.getMaxMetricInAllRevisions(heightKey);
-        let heightScale = w / maxHeight;
-
-        nodes.forEach((node)=> {
-            this.transformNode(node, heightKey, heightScale, 2);
-        });
-
-        return nodes;
+        return treeMap(root.sum((node) => this.calculateValue(node, edges, s.areaKey, s.blacklist))) as SquarifiedValuedCodeMapNode;
     }
 
-    /**
-     * Transforms a d3 node to our specific representation. Our specification requires a third axis z.
-     * -add z0 and z1 depending on treedepth and padding
-     * -add w,l,h depending on data.type and x, y
-     * -all we also write all important stuff into the node itself so we do not need node.data anymore (there could be obsolete data from old cc.jsons)
-     * -the height of the new z axis needs to be scaled to the w/l of the {d3#treemap}
-     *
-     * @param {Object} node d3 node
-     * @param {string} heightKey name of the height metric
-     * @param {number} heightScale scaling factor
-     * @param {number} folderHeight height of folder
-     */
-    private transformNode(node, heightKey, heightScale, folderHeight) {
+    private addMapScaledHeightDimensionAndFinalizeFromRoot(squaredNode: SquarifiedValuedCodeMapNode, edges: Edge[], s: TreeMapSettings): node {
+        const heightScale = s.size / TreeMapService.HEIGHT_DIVISOR / this.dataService.getMaxMetricInAllRevisions(s.heightKey);
 
-        node.width = Math.max(node.x1 - node.x0, 1);
-        node.length = Math.max(node.y1 - node.y0, 1);
-        node.height = node.isLeaf ? heightScale * node.data.attributes[heightKey] : folderHeight;
-        node.z0 = folderHeight * node.depth;
-        node.z1 = folderHeight * node.depth + node.height;
-        node.attributes = node.data.attributes;
-        node.name = node.data.name;
-        if (node.data.deltas) {
-            node.deltas = node.data.deltas;
-            if(node.deltas[heightKey]) {
-                node.heightDelta = heightScale * node.data.deltas[heightKey];
-            }
+        const maxHeight = this.dataService.getMaxMetricInAllRevisions(s.heightKey);
+        return this.addHeightDimensionAndFinalize(squaredNode, s, heightScale, maxHeight);
+    }
+
+    private addHeightDimensionAndFinalize(squaredNode: SquarifiedValuedCodeMapNode, s: TreeMapSettings, heightScale: number, maxHeight: number, depth = 0, parent: node = null): node {
+
+        let attr = squaredNode.data.attributes || {};
+        let heightValue = attr[s.heightKey];
+
+        if (heightValue === undefined || heightValue === null) {
+            heightValue = TreeMapService.HEIGHT_VALUE_WHEN_METRIC_NOT_FOUND;
         }
-        node.link = node.data.link;
-        node.origin = node.data.origin;
 
-        node.data = {};
-        delete node.data;
+        if (heightValue === undefined || heightValue === null) {
+            heightValue = TreeMapService.HEIGHT_VALUE_WHEN_METRIC_NOT_FOUND;
+        }
+
+        if (CodeMapUtilService.isBlacklisted(squaredNode.data, s.blacklist, ExcludeType.hide)) {
+            squaredNode.data = this.setVisibilityOfNodeAndDescendants(squaredNode.data, false);
+        }
+
+        const finalNode = TreeMapUtils.buildNodeFrom(squaredNode, heightScale, heightValue, maxHeight, depth, parent, s, TreeMapService.MIN_BUILDING_HEIGHT, TreeMapService.FOLDER_HEIGHT);
+
+        if (squaredNode.children && squaredNode.children.length > 0) {
+            const finalChildren: node[] = [];
+            for (let i = 0; i < squaredNode.children.length; i++) {
+                finalChildren.push(this.addHeightDimensionAndFinalize(squaredNode.children[i], s, heightScale, maxHeight, depth + 1, finalNode));
+            }
+            finalNode.children = finalChildren;
+        }
+        return finalNode;
 
     }
 
-    /**
-     * Gets the biggest value of a metric in the current set of revisions
-     * @param {string} metric name of the metric
-     * @returns {number} max value
-     */
-    getMaxMetricInAllRevisions(metric: string) {
-        var maxValue = 0;
-
-        this.dataService.data.revisions.forEach((rev)=> {
-            var nodes = d3.hierarchy(rev.root).leaves();
-            nodes.forEach((node: any)=> {
-                if (node.data.attributes[metric] > maxValue) {
-                    maxValue = node.data.attributes[metric];
-                }
-            });
+    public setVisibilityOfNodeAndDescendants(node: CodeMapNode, visibility: boolean) {
+        node.visible = visibility;
+        hierarchy<CodeMapNode>(node).descendants().forEach((hierarchyNode) => {
+            hierarchyNode.data.visible = visibility;
         });
-
-        return maxValue;
+        return node;
     }
 
-    /**
-     * Extracts the area by areakey from the node.
-     *
-     * @param {Object} node d3 node
-     * @param {string} areaKey name of the area attribute key
-     * @returns {number} area value else 0
-     */
-    getArea(node, areaKey) {
+    private calculateValue(node: CodeMapNode, edges: Edge[], key: string, blacklist: Array<Exclude>): number {
         let result = 0;
-        if (node.attributes && (!node.children || node.children.length === 0)) {
-            result = node.attributes[areaKey] || 0;
+
+        if(CodeMapUtilService.isBlacklisted(node, blacklist, ExcludeType.exclude)) {
+            return 0;
+        }
+
+        if ((!node.children || node.children.length === 0)) {
+            if(node.attributes && node.attributes[key]) {
+                result = node.attributes[key] || 0;
+            } else {
+                result = this.getEdgeValue(node, edges, key);
+            }
         }
         return result;
     }
 
-}
+    private getEdgeValue(node: CodeMapNode, edges: Edge[], key: string) {
+        let filteredEdgeAttributes: number[] = [];
 
-export {TreeMapService};
+        if (edges) {
+            edges.forEach((edge)=> {
+                if (edge.fromNodeName == node.path || edge.toNodeName == node.path) {
+                    filteredEdgeAttributes.push(edge.attributes[key]);
+                }
+            });
+        }
+
+        if (filteredEdgeAttributes) {
+            return filteredEdgeAttributes.sort().reverse()[0];
+        }
+        return 1;
+    }
+}
 

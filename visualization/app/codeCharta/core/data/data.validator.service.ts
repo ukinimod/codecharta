@@ -16,35 +16,24 @@ export class DataValidatorService {
     }
 
     /**
-     * Checks if a nodes children are unique in name
+     * Checks if a nodes children are unique in name+type
      * @param {Object} node
      * @returns {boolean} true if the node has unique children
      */
     hasUniqueChildren(node: CodeMapNode) {
 
-        if(node.children && node.children.length > 0) {
+        if(!node.children || node.children.length == 0) return true;
 
-            var names = {};
-
-            for(var i=0; i<node.children.length; i++){
-                names[node.children[i].name] = true;
-            }
-
-            if(Object.keys(names).length !== node.children.length){
-                return false;
-            } else {
-                var valid = true;
-                for(var j=0; j<node.children.length; j++){
-                    valid = valid && this.hasUniqueChildren(node.children[j]);
-                }
-                return valid;
-            }
-
-
-        } else {
-            return true;
+        let names = {};
+        for(let child of node.children) {
+            names[child.name + child.type] = true;
         }
+        if(Object.keys(names).length !== node.children.length) return false;
 
+        for(let child of node.children){
+            if(!this.hasUniqueChildren(child)) return false;
+        }
+        return true;
     }
 
     /**
@@ -56,9 +45,9 @@ export class DataValidatorService {
 
         return new Promise((resolve, reject) => {
 
-                var ajv = require("ajv")();
-                var compare = ajv.compile(require("./schema.json"));
-                var valid = compare(data);
+                let ajv = require("ajv")();
+                let compare = ajv.compile(require("./schema.json"));
+                let valid = compare(data);
 
                 // TODO data.nodes[0] must be the root
                 if(!this.hasUniqueChildren(data.nodes[0])){

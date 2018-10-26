@@ -4,12 +4,16 @@ import {IScope} from "angular";
 import {TooltipService, TooltipServiceSubscriber, Tooltips} from "../../core/tooltip/tooltip.service";
 import {ScenarioService, Scenario} from "../../core/scenario/scenario.service";
 import $ from "jquery";
+import {Settings, SettingsService, SettingsServiceSubscriber} from "../../core/settings/settings.service";
+import {DataModel, DataService, DataServiceSubscriber} from "../../core/data/data.service";
+import "./scenarioDropDown.scss";
 
-export class ScenarioButtonsController implements TooltipServiceSubscriber{
+export class ScenarioButtonsController implements TooltipServiceSubscriber, DataServiceSubscriber, SettingsServiceSubscriber {
 
     private scenarios: Scenario[];
+    private key;
     private visible: boolean = false;
-
+    public  scenario: Scenario;
     /* @ngInject */
     /**
      *
@@ -18,33 +22,27 @@ export class ScenarioButtonsController implements TooltipServiceSubscriber{
      * @param {Scope} $rootScope
      * @param {Scope} $scope
      */
-    constructor(
-        private scenarioService: ScenarioService,
-        private tooltipService: TooltipService,
-        private $scope: IScope
-    ) {
-        this.scenarios = scenarioService.getScenarios();
+    constructor(private scenarioService: ScenarioService,
+                private tooltipService: TooltipService,
+                private settingsService: SettingsService,
+                private dataService: DataService,
+                private $scope: IScope) {
+        this.updateScenarios();
         this.tooltipService.subscribe(this);
+        this.settingsService.subscribe(this);
+        this.dataService.subscribe(this);
     }
 
-    $postLink(){
-        $("#revisionButton").bind("click", this.toggle);
-        $("#mapButton").bind("click", this.toggle);
+    updateScenarios() {
+        this.scenarios = this.scenarioService.getScenarios();
     }
 
-    /**
-     * Toggles the visibility
-     */
-    toggle(){
-        if (this.visible) {
-            //noinspection TypeScriptUnresolvedFunction
-            $("#revisionChooser").animate({left: -500 + "px"});
-            this.visible = false;
-        } else {
-            //noinspection TypeScriptUnresolvedFunction
-            $("#revisionChooser").animate({left: 2.8+"em"});
-            this.visible = true;
-        }
+    onDataChanged(data: DataModel, event: angular.IAngularEvent) {
+        this.updateScenarios();
+    }
+
+    onSettingsChanged(settings: Settings, event: Event) {
+        this.updateScenarios();
     }
 
     onTooltipsChanged(tooltips: Tooltips, event: Event) {
@@ -56,7 +54,7 @@ export class ScenarioButtonsController implements TooltipServiceSubscriber{
      * @param {String} key
      * @returns {String} tooltip
      */
-    getScenarioTooltipTextByKey(key: string){
+    getScenarioTooltipTextByKey(key: string) {
         return this.tooltipService.getTooltipTextByKey(key);
     }
 
@@ -64,14 +62,25 @@ export class ScenarioButtonsController implements TooltipServiceSubscriber{
      * called when a scenario button is clicked, applies the linked scenario
      * @param {Scenario} value
      */
-    onclick(value: Scenario){
+    onclick(value: Scenario) {
         this.scenarioService.applyScenario(value);
+        console.log(value);
     }
-};
+
+    applySettings(){
+        this.scenarioService.applyScenario(this.scenarios[this.key]);
+        this.key = null;
+    }
+}
 
 export const scenarioButtonsComponent = {
     selector: "scenarioButtonsComponent",
     template: require("./scenarioButtons.html"),
+    controller: ScenarioButtonsController
+};
+export const scenarioDropDownComponent = {
+    selector: "scenarioDropDownComponent",
+    template: require("./scenarioDropDown.html"),
     controller: ScenarioButtonsController
 };
 

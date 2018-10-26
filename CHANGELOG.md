@@ -6,12 +6,321 @@ and this project adheres to [Semantic Versioning](http://semver.org/)
 
 ## [unreleased]
 ### Added
+- Integration with Jasome through JasomeImporter #245
+- URL parameter 'mode' with the values Single, Multiple or Delta 
+- Blacklist to persist excluded or hidden nodes #205
+- Option to exclude nodes in nodeContextMenu #205
+- BlacklistPanel in SettingsSidebar to manage blacklist #205 
+- Save-Button to download current CodeMap #205
+
+### Changed
+- No longer fat jar of every subcomponent of analysis, baked into ccsh
+- Changed simple syserr write to logger call for analysis #243
+
+### Removed
+- URL parameter 'delta' does not exist anymore
+
+### Fixed
+- Show delta of CodeMap when URL parameter mode=delta is set
+
+## [1.17.0] - 2018-09-28
+### Added
+
+### Changed
+- Invert delta colors moved from color to heigh metric column in ribbon bar #220
+- Delta value now as kindOfMap shown #220
+- Aggreate maps as multiple rename #220
+
+### Removed
+
+### Fixed
+-  Single/delta buttons now correctly activated when delta in ulr shown #220
+
+
+## [1.17.0] - 2018-09-21
+### Added
+- CodeMaatImport for temporal coupling dependencies #172
+- EdgeFilter to aggregate edge-attributes as node-attributes #222
+- Option to show and hide dependent edges from node-context-menu #218
+
+### Changed
+- MergeFilter merges edges #172
+
+### Removed
+
+### Fixed
+
+## [1.16.2] - 2018-09-10
+### Added
 
 ### Changed
 
 ### Removed
 
 ### Fixed
+- missing event in firefox #232
+
+## [1.16.1] - 2018-08-31
+### Added
+- gitlab + dotnet manual
+### Changed
+
+### Removed
+
+### Fixed
+
+## [1.16.0] - 2018-08-31
+### Added
+- add the option to add multiple files via url parameter (e.g. ?file=a&file=b...)
+### Changed
+
+### Removed
+
+### Fixed
+
+## [1.15.1] - 2018-08-13
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+## [1.15.0] - 2018-08-13
+### Added
+- e2e tests are running in CI Environment (headless)
+- pupeteer as e2e test framework
+- Show names of marked packages in legend
+- Added a source code importer that can analyse rloc,mcc for java source code
+- keep settings when the user changes a file
+- Added option to set white background
+
+### Changed
+
+### Removed
+- cypress
+
+### Fixed
+
+## [1.14.2] - 2018-07-16
+### Added
+
+### Changed
+- Changed folder detail metrics from mean to sum
+
+### Removed
+
+### Fixed
+
+## [1.14.1] - 2018-07-13
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+## [1.14.0] - 2018-07-13
+### Added
+- Added UnderstandImporter to Analysis
+- Packages can be highlighted in different colors #152
+- Adding a context menu with highlighting colors and convenience methods for the tree view and 3D view #155
+- Folders and files to highlight can be described in the cc.json #165
+- Dynamic/automatic margin computing de/activated by tick
+
+### Changed
+- Details panel: using the sum of the childrens metrics instead of the mean value
+
+### Removed
+
+### Fixed
+- Display buttons do not trigger map changes #185
+- Flickering surfaces when zooming out
+
+## [1.13.0] - 2018-06-08
+### Added
+- Layout switcher #141
+- Added CrococosmoImporter to Analysis
+- Added type, dirs, name to CSVExporter
+- Invert height of building checkbox
+- Aggregate multiple maps in visualization #110
+- Auto Focus selected map part
+- Timmer added to applySettings in SettingsService
+
+### Changed
+- Crococosmo xml files will now generate a cc.json file for each version
+- Suppressing ARIA warnings
+- Simplified gradle structure of analysis part
+- Deltas added in the metric quick access panel #138
+- Ticks and ResetValue Buttons call to onSettingsChange to avoid applySettings timer
+- compacting empty middle packages #150
+- Detail panel minimized by default
+### Removed
+
+### Fixed
+- filter by regex shows parent nodes #116
+- typo in scss file
+
+## [1.12.0] - 2018-04-27
+### Added
+- horizontal quick access metric chooser
+- Link behind filepath in detailPanel #84
+- Double click event-handler on Buildings #84
+- Detail Panel can be minimized and maximized
+- Settings option to minimize Detail Panel
+- cypress as an e2e test runner
+
+
+### Changed
+
+### Removed
+- metric details from legend
+- metric chooser from settings panel
+
+### Fixed
+
+## [1.11.2] - 2018-04-13
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+- a sonar importer bug which prevented the importer to fetch the last page #122
+
+## [1.11.1] - 2018-04-11
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+## [1.11.0] - 2018-04-11
+### Added
+- SASS support
+- simple regex filter
+- Reset Button
+- Dialog Service replaces console log calls and window.alert calls
+- linking tree view and map hover
+- auto fit scene button
+- anugularJS material
+- Scenarios are now filtered by compatibility for the given map
+- Link in visualization #84
+
+### Changed
+
+### Removed
+- materialize-css
+- grunt
+
+### Fixed
+- less flickering and artifacts
+
+## [1.10.0] - 2018-03-22
+### Added
+
+### Changed
+- Clean up UI #86
+- Updated analysis dependencies
+
+### Removed
+
+### Fixed
+- Delta View shows Deltas of itself as non-trivial if nodes have same name #89: Compare deltas by path not name
+- Delta calculation performance boost #91
+- Problems when intermediate nodes missed metrics #92
+- removed unnecessary calculations
+- removed bug in SonarImporter that slowed up performance and missed out multiple metrics
+- minor bugs
+
+## [1.9.3] - 2018-02-23
+### Added
+
+### Changed
+- sorting treeview by folders and names
+
+### Removed
+
+### Fixed
+
+## [1.9.2] - 2018-02-20
+### Added
+- added preliminary CSVExporter for visualisation data
+
+### Changed
+- padding rendering
+- minimal building height is 1 to prevent clipping issues
+- fallback values for visualization when no metric is available (area = 1, height = 1, color = grey). Data in data structure will not be changed.
+
+### Removed
+
+### Fixed
+
+## [1.9.1] - 2018-02-20
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+- detail panel bug fix
+
+## [1.9.0] - 2018-02-20
+### Added
+
+### Changed
+- moved to unscoped npm packages
+
+### Removed
+
+### Fixed
+
+## [1.8.2] - 2018-02-20
+### Added
+
+### Changed
+- detail panel background is white now. better visibility
+
+### Removed
+
+### Fixed
+
+## [1.8.1] - 2018-02-20
+### Added
+
+### Changed
+- revision chooser moved to settings panel and uses now understandable dropdowns instead of links. Part of the #82 proposals
+
+### Removed
+
+### Fixed
+
+## [1.8.0] - 2018-02-20
+### Added
+- Experimental dependency support
+- loading indicator
+- file path to detail panel
+- collapsible tree view and visibility/isolation per node toggles
+
+### Changed
+- added a ray-aabb intersection test before precise testing. Less time is spent in intersection methods.
+
+### Removed
+
+### Fixed
+- fixed a minor bug
+- canvas mouse event listener are now limited to the canvas dom element. UI events will not trigger the canvas listeners anymore
+- canvas mouse events distinguish now between click and drag. Dragging does not reset selection anymore
+- slider input #64
+- rz slider initialization bug
+- increasing test coverage
+- deltas where calculated on map loading even though, they were disabled
 
 ## [1.7.2] - 2018-02-02
 ### Added

@@ -33,8 +33,6 @@ import de.maibornwolff.codecharta.serialization.ProjectDeserializer
 import de.maibornwolff.codecharta.serialization.ProjectSerializer
 import picocli.CommandLine
 import java.io.File
-import java.io.FileInputStream
-import java.io.InputStreamReader
 import java.util.concurrent.Callable
 
 @CommandLine.Command(name = "merge",
@@ -45,31 +43,39 @@ class MergeFilter : Callable<Void?> {
     var help: Boolean = false
 
     @CommandLine.Parameters(arity = "1..*", paramLabel = "FILE", description = ["files to merge"])
-    var sources: Array<File>? = null
+    private var sources: Array<File> = arrayOf()
 
     @CommandLine.Option(names = ["-a", "--add-missing"], description = ["enable adding missing nodes to reference"])
-    var addMissingNodes = false
+    private var addMissingNodes = false
 
     @CommandLine.Option(names = ["--recursive"], description = ["recursive merging strategy"])
-    var recursiveStrategySet = true
+    private var recursiveStrategySet = true
 
     @CommandLine.Option(names = ["--leaf"], description = ["leaf merging strategy"])
-    var leafStrategySet = false
+    private var leafStrategySet = false
+
+    @CommandLine.Option(names = ["-o", "--outputFile"], description = ["output File (or empty for stdout)"])
+    private var outputFile: File? = null
+
+    @CommandLine.Option(names = ["--ignore-case"], description = ["ignores case when checking node names"])
+    private var ignoreCase = false
 
     override fun call(): Void? {
-        var nodeMergerStrategy =
+        val nodeMergerStrategy =
                 when {
-                    !leafStrategySet -> LeafNodeMergerStrategy(addMissingNodes)
-                    !recursiveStrategySet && leafStrategySet -> RecursiveNodeMergerStrategy()
+                    leafStrategySet -> LeafNodeMergerStrategy(addMissingNodes, ignoreCase)
+                    recursiveStrategySet && !leafStrategySet -> RecursiveNodeMergerStrategy(ignoreCase)
                     else -> throw IllegalArgumentException("Only one merging strategy must be set")
                 }
 
-        val inputStream = sources!!.map { FileInputStream(it.absoluteFile) }
-        val projects = inputStream.map { p -> ProjectDeserializer.deserializeProject(InputStreamReader(p)) }
+        val srcProjects = sources
+                .map { it.bufferedReader() }
+                .map { ProjectDeserializer.deserializeProject(it) }
 
-        val project = ProjectMerger(projects, nodeMergerStrategy).merge()
+        val mergedProject = ProjectMerger(srcProjects, nodeMergerStrategy).merge()
 
-        System.out.writer().use { ProjectSerializer.serializeProject(project, it) }
+        val writer = outputFile?.bufferedWriter() ?: System.out.bufferedWriter()
+        ProjectSerializer.serializeProject(mergedProject, writer)
 
         return null
     }
